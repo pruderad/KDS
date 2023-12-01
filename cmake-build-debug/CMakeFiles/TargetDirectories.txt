@@ -1,0 +1,3 @@
+/home/koondra/temp_school/KDS/project/KDS/cmake-build-debug/CMakeFiles/KDS.dir
+/home/koondra/temp_school/KDS/project/KDS/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/koondra/temp_school/KDS/project/KDS/cmake-build-debug/CMakeFiles/rebuild_cache.dir
