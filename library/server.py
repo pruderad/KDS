@@ -1,12 +1,21 @@
 import socket
+import json
 
  
 class Server:
-    def __init__(self, ip_adress: str, local_port: int = 20001, bufferSize: int = 1024) -> None:
+    def __init__(self, ip_adress: str, bufferSize: int = 1024) -> None:
+        
+        with open('./../net_derper/Config.json', 'rb') as c_file:
+            self.nd_config = json.load(c_file)
+            self.local_port = self.nd_config['Acknowledgement']['Connection']['TargetPort']
+            self.target_port = self.nd_config['Data']['Connection']['SourcePort']
+            self.client_ip_adress = self.nd_config['Data']['Connection']['TargetHostName']
+
         self.ip_adress = ip_adress
-        self.local_port = local_port
         self.bufferSize = bufferSize
         self.socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+        
+        self.create_server()
 
     def create_server(self) -> None:
         self.socket.bind((self.ip_adress, self.local_port))
@@ -21,69 +30,14 @@ class Server:
 
         return message, client_address
     
-    def message_send(self, message: str, client_adress: str) -> None:
+    def message_send(self, message: str) -> None:
+        # TODO() message creating logic
         bytesToSend = str.encode(message)
-        self.socket.sendto(bytesToSend, client_adress)
+
+        # TODO() register for error handling
+        self.send_bytes(bytesToSend)
 
 
+    def send_bytes(self, bytes):
+        self.socket.sendto(bytes, (self.client_ip_adress, self.target_port))
 
-
-
-
-
-
-'''
-
-localIP     = "192.168.1.117"
-
-localPort   = 20001
-
-bufferSize  = 1024
-
- 
-
-msgFromServer       = "Hello UDP Client"
-
-bytesToSend         = str.encode(msgFromServer)
-
- 
-
-# Create a datagram socket
-
-UDPServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-
- 
-
-# Bind to address and ip
-
-UDPServerSocket.bind((localIP, localPort))
-
- 
-
-print("UDP server up and listening")
-
- 
-
-# Listen for incoming datagrams
-
-while(True):
-
-    bytesAddressPair = UDPServerSocket.recvfrom(bufferSize)
-
-    message = bytesAddressPair[0]
-
-    address = bytesAddressPair[1]
-
-    clientMsg = "Message from Client:{}".format(message)
-    clientIP  = "Client IP Address:{}".format(address)
-    
-    print(clientMsg)
-    print(clientIP)
-
-   
-
-    # Sending a reply to client
-
-    UDPServerSocket.sendto(bytesToSend, address)
-
-'''
