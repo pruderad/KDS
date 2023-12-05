@@ -1,7 +1,7 @@
 from library.client import Client
 import time
 
-SERVER_IP_ADRESS = '147.32.215.97'
+SERVER_IP_ADRESS = '147.32.215.69'
 
 if __name__ == '__main__':
 
