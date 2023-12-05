@@ -1,10 +1,10 @@
 import socket
 import json
-
+import sys
  
 class Client:
     def __init__(self, server_ip_adress: str, bufferSize: int = 1024) -> None:
-        with open('./../net_derper/Config.json', 'rb') as c_file:
+        with open('./net_derper/Config.json', 'rb') as c_file:
             self.nd_config = json.load(c_file)
             self.ip_adress = self.nd_config['Data']['Connection']['TargetHostName']
             self.local_port = self.nd_config['Data']['Connection']['TargetPort']
