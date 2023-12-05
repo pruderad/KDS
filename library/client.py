@@ -1,7 +1,8 @@
 import socket
 import json
 import sys
- 
+import crcmod
+
 class Client:
     def __init__(self, server_ip_adress: str, bufferSize: int = 1024) -> None:
         with open('./net_derper/Config.json', 'rb') as c_file:
@@ -23,11 +24,23 @@ class Client:
 
     def message_read(self) -> list:
         bytesAddressPair = self.socket.recvfrom(self.bufferSize)
-
-        message = bytesAddressPair[0]
+        packet = bytesAddressPair[0]
         client_address = bytesAddressPair[1]
 
-        return message, client_address
+        # split the message and crc
+        try:
+            received_message, recieved_crc = packet.decode().rsplit(',', 1)
+            recieved_crc = int(recieved_crc)
+        except Exception as e:
+            return False, ' ', ' '
+        
+        # chec validity of the recieved data with crc
+        crc32_func = crcmod.predefined.mkCrcFun('crc-32')
+        computed_crc = crc32_func(received_message.encode())
+        print(computed_crc, recieved_crc)
+        valid = computed_crc == recieved_crc
+
+        return valid, received_message, client_address
     
     def message_send(self, message: str) -> None:
         # TODO() message creating logic
