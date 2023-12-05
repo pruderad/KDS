@@ -1,18 +1,29 @@
 import socket
 
+ 
 class Client:
-    def __init__(self, server_ip: str, server_port: int, bufferSize: int = 1024) -> None:
-        self.server_ip = server_ip
-        self.server_port = server_port
+    def __init__(self, ip_adress: str, local_port: int = 20001, bufferSize: int = 1024) -> None:
+        self.ip_adress = ip_adress
+        self.local_port = local_port
         self.bufferSize = bufferSize
         self.socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
-    def message_send(self, message: str) -> None:
-        bytesToSend = str.encode(message)
-        self.socket.sendto(bytesToSend, (self.server_ip, self.server_port))
+    def create_server(self) -> None:
+        self.socket.bind((self.ip_adress, self.local_port))
+        print(f'server with IP adress {self.ip_adress} is active')
+        print("UDP server up and listening")
 
-    def message_read(self) -> str:
-        return self.socket.recvfrom(self.bufferSize)
+    def message_read(self) -> list:
+        bytesAddressPair = self.socket.recvfrom(self.bufferSize)
+
+        message = bytesAddressPair[0]
+        client_address = bytesAddressPair[1]
+
+        return message, client_address
+    
+    def message_send(self, message: str, client_adress: str) -> None:
+        bytesToSend = str.encode(message)
+        self.socket.sendto(bytesToSend, client_adress)
 
 
 
