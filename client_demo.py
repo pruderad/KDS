@@ -1,12 +1,13 @@
-from library.server import Server
+from library.client import Client
 import time
 
-server = Server(ip_adress='147.32.215.93', local_port=15000, bufferSize=1024)
-server.create_server()
-#server.socket.listen(1)
+SERVER_IP_ADRESS = '147.32.215.97'
 
+if __name__ == '__main__':
 
-while True:
-    message = server.message_read()
-    print(message)
-    server.message_send('je to pravda', ('147.32.215.97', 14001))
+    client = Client(server_ip_adress=SERVER_IP_ADRESS)
+
+    while True:
+        message = client.message_read()
+        print(message)
+        client.message_send('je to pravda -- Ales je fakt mrdka')
