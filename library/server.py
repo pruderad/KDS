@@ -1,6 +1,8 @@
 import socket
 import json
+import sys
 
+sys.path
  
 class Server:
     def __init__(self, ip_adress: str, bufferSize: int = 1024) -> None:
