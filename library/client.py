@@ -1,12 +1,20 @@
 import socket
+import json
 
  
 class Client:
-    def __init__(self, ip_adress: str, local_port: int = 20001, bufferSize: int = 1024) -> None:
-        self.ip_adress = ip_adress
-        self.local_port = local_port
+    def __init__(self, server_ip_adress: str, bufferSize: int = 1024) -> None:
+        with open('./../net_derper/Config.json', 'rb') as c_file:
+            self.nd_config = json.load(c_file)
+            self.ip_adress = self.nd_config['Data']['Connection']['TargetHostName']
+            self.local_port = self.nd_config['Data']['Connection']['TargetPort']
+            self.target_port = self.nd_config['Acknowledgement']['Connection']['SourcePort']
+
+        self.server_ip_adress = server_ip_adress
         self.bufferSize = bufferSize
         self.socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+
+        self.create_server()
 
     def create_server(self) -> None:
         self.socket.bind((self.ip_adress, self.local_port))
@@ -21,41 +29,13 @@ class Client:
 
         return message, client_address
     
-    def message_send(self, message: str, client_adress: str) -> None:
+    def message_send(self, message: str) -> None:
+        # TODO() message creating logic
         bytesToSend = str.encode(message)
-        self.socket.sendto(bytesToSend, client_adress)
 
+        # TODO() register for error handling
+        self.send_bytes(bytesToSend)
 
+    def send_bytes(self, bytes):
+        self.socket.sendto(bytes, (self.server_ip_adress, self.target_port))
 
-
-'''
-msgFromClient       = "Hello UDP Server"
-
-bytesToSend         = str.encode(msgFromClient)
-
-serverAddressPort   = ("127.0.0.1", 20001)
-
-bufferSize          = 1024
-
- 
-
-# Create a UDP socket at client side
-
-UDPClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-
- 
-
-# Send to server using created UDP socket
-
-
-UDPClientSocket.sendto(bytesToSend, serverAddressPort)
-
-
-
-msgFromServer = UDPClientSocket.recvfrom(bufferSize)
-
-
-msg = "Message from Server - {}".format(msgFromServer[0])
-
-print(msg)
-'''
