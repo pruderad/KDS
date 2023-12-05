@@ -40,6 +40,5 @@ class Server:
 
 
     def send_bytes(self, bytes):
-        print(self.client_ip_adress, self.target_port)
         self.socket.sendto(bytes, (self.client_ip_adress, self.target_port))
 
