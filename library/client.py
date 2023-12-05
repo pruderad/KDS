@@ -7,8 +7,8 @@ class Client:
         with open('./net_derper/Config.json', 'rb') as c_file:
             self.nd_config = json.load(c_file)
             self.ip_adress = self.nd_config['Data']['Connection']['TargetHostName']
-            self.local_port = self.nd_config['Data']['Connection']['TargetPort']
-            self.target_port = self.nd_config['Acknowledgement']['Connection']['SourcePort']
+            self.local_port = int(self.nd_config['Data']['Connection']['TargetPort'])
+            self.target_port = int(self.nd_config['Acknowledgement']['Connection']['SourcePort'])
 
         self.server_ip_adress = server_ip_adress
         self.bufferSize = bufferSize

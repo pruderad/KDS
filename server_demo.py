@@ -10,6 +10,6 @@ if __name__ == '__main__':
 
         write_message = "Ales je mrdkaaaaaaaaaaaa"
         server.message_send(message=write_message)
-        message = server.message_read()
-        print(message)
+        #message = server.message_read()
+        #print(message)
 

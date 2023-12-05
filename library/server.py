@@ -4,7 +4,7 @@ import sys
 
  
 class Server:
-    def __init__(self, ip_adress: str = '127.0.0.1', bufferSize: int = 1024) -> None:
+    def __init__(self, ip_adress: str = "127.0.0.1", bufferSize: int = 1024) -> None:
         
         with open('./net_derper/Config.json', 'rb') as c_file:
             self.nd_config = json.load(c_file)
@@ -40,7 +40,6 @@ class Server:
 
 
     def send_bytes(self, bytes):
-        print(type(self.client_ip_adress), type(self.target_port))
-        print(type(bytes))
+        print(self.client_ip_adress, self.target_port)
         self.socket.sendto(bytes, (self.client_ip_adress, self.target_port))
 
