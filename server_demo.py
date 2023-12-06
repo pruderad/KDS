@@ -3,17 +3,11 @@ import time
 import crcmod
 
 SERVER_IP_ADRESS = ''
+FILE_PATH = './data'
 
 if __name__ == '__main__':
 
-    server = Server()
+    server = Server(ack_timout_s=0.3, sender_freq_hz=10, reciever_freq_hz=10)
+    server.serve_file(file_path=FILE_PATH, window_size=10)
 
-    while True:
-
-        write_message = "Ales je mrdka"
-
-        server.message_send(message=write_message)
-        #message = server.message_read()
-        #print(message)
-        time.sleep(0.5)
-
+    print('done')
