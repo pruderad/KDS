@@ -60,10 +60,9 @@ class Server:
         # TODO() check validity
         # TODO() add non blocking
         print('here')
-        with self.lock:
-            self.socket.setblocking(block)
-            # TODO received packet might be limited by client address
-            bytesAddressPair = self.socket.recvfrom(self.bufferSize)
+        self.socket.setblocking(block)
+        # TODO received packet might be limited by client address
+        bytesAddressPair = self.socket.recvfrom(self.bufferSize)
         packet = bytesAddressPair[0]
         client_address = bytesAddressPair[1]
 
@@ -91,8 +90,7 @@ class Server:
 
     def send_bytes(self, bytesToSend :bytes) -> None:
         print('sending bytes')
-        with self.lock:
-            self.socket.sendto(bytesToSend, (self.client_ip_adress, self.target_port))
+        self.socket.sendto(bytesToSend, (self.client_ip_adress, self.target_port))
 
     def get_CRC(self, data):
         crc32_func = crcmod.predefined.mkCrcFun('crc-32')
@@ -213,8 +211,8 @@ class Server:
                 # update sent time
                 with self.lock:
                     self.packets_sent_time[new_packet_id] = time.time() - self.com_start_time
-                # send the packet
-                self.send_bytes(new_packet)
+                    # send the packet
+                    self.send_bytes(new_packet)
 
             # check and send one remaining file to resend
             with self.lock:
@@ -228,8 +226,8 @@ class Server:
                     self.packets_sent_time[new_packet_id] = time.time() - self.com_start_time
                     if new_packet_id in self.packet_ids_to_resend:
                         self.packet_ids_to_resend.remove(new_packet_id)
-                # send the packet
-                self.send_bytes(new_packet)
+                    # send the packet
+                    self.send_bytes(new_packet)
 
             time.sleep(1 / self.sender_freq_hz)
 
@@ -241,7 +239,8 @@ class Server:
 
         while True:
             # process incoming acknowledgement -- nonblocking
-            valid, message, packet_id, _ = self.message_read(block=False)
+            with self.lock:
+                valid, message, packet_id, _ = self.message_read(block=False)
             print(valid, message)
             if valid:
                 ack = self.parse_ack_message(message)
