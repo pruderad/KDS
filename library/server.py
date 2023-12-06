@@ -12,7 +12,7 @@ class Server:
             self.local_port = int(self.nd_config['Acknowledgement']['Connection']['TargetPort'])
             self.target_port = int(self.nd_config['Data']['Connection']['SourcePort'])
             #self.client_ip_adress = self.nd_config['Data']['Connection']['TargetHostName']
-            self.client_ip_adress = '127.0.0.1'
+            self.client_ip_adress = "127.0.0.1"
 
         self.ip_adress = ip_adress
         self.bufferSize = bufferSize
@@ -39,8 +39,10 @@ class Server:
 
         crc32_func = crcmod.predefined.mkCrcFun('crc-32')
         crc = crc32_func(message.encode())
-        message_with_crc = f"{message},{crc}"
-        print(crc)
+        crc_str = str(crc)
+        crc_correct_len = crc_str.zfill(10)
+        message_with_crc = message + crc_correct_len
+        print(crc_correct_len)
 
         bytesToSend = str.encode(message_with_crc)
 
@@ -48,7 +50,18 @@ class Server:
         self.send_bytes(bytesToSend)
 
 
-    def send_bytes(self, bytes):
+    def send_bytes(self, bytesToSend) -> None:
 
-        self.socket.sendto(bytes, (self.client_ip_adress, self.target_port))
+        self.socket.sendto(bytesToSend, (self.client_ip_adress, self.target_port))
 
+    def open_file(self, path) -> list:
+
+        data_buffer = []
+
+        with open(path, 'rb') as file:
+            data = file.read(self.bufferSize)
+            while data:
+                data_buffer.append(data)
+                data = file.read(self.bufferSize)
+
+        return data_buffer

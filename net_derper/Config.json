@@ -1,12 +1,12 @@
 {
   "Data": {
-    "Connection": { "SourcePort": 14000, "TargetPort": 15000, "TargetHostName": "147.32.215.77" },
-    "Manipulation": { "DropRate": 0, "ErrorRate": 10 },
+    "Connection": { "SourcePort": 14000, "TargetPort": 15000, "TargetHostName": "147.32.215.65" },
+    "Manipulation": { "DropRate": 0, "ErrorRate": 0 },
     "Delay": { "Mean": 0, "StdDev": 0 }
   },
   "Acknowledgement": {
     "Connection": { "SourcePort": 14001, "TargetPort": 15001, "TargetHostName": "127.0.0.1" },
-    "Manipulation": { "DropRate": 0, "ErrorRate": 10 },
+    "Manipulation": { "DropRate": 0, "ErrorRate": 0 },
     "Delay": { "Mean": 0, "StdDev": 0 }
   }
 }

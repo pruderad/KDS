@@ -12,8 +12,6 @@ if __name__ == '__main__':
 
         write_message = "Ales je mrdka"
 
-
-
         server.message_send(message=write_message)
         #message = server.message_read()
         #print(message)
