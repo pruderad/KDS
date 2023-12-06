@@ -29,15 +29,17 @@ class Client:
 
         # split the message and crc
         try:
-            received_message, recieved_crc = packet.decode().rsplit(',', 1)
-            recieved_crc = int(recieved_crc)
+            decoded_packet = packet.decode()
+            recieved_crc = int(decoded_packet[-10:])
+            received_message = decoded_packet[:-10]
+
         except Exception as e:
             return False, ' ', ' '
         
         # chec validity of the recieved data with crc
         crc32_func = crcmod.predefined.mkCrcFun('crc-32')
         computed_crc = crc32_func(received_message.encode())
-        print(computed_crc, recieved_crc)
+        print(computed_crc, recieved_crc)   
         valid = computed_crc == recieved_crc
 
         return valid, received_message, client_address

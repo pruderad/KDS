@@ -10,4 +10,4 @@ if __name__ == '__main__':
     while True:
         message = client.message_read()
         print(message)
-        client.message_send('je to pravda -- Ales je fakt mrdka')
+        #client.message_send('je to pravda -- Ales je fakt mrdka')
