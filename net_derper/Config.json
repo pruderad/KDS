@@ -1,6 +1,6 @@
 {
   "Data": {
-    "Connection": { "SourcePort": 14000, "TargetPort": 15000, "TargetHostName": "147.32.215.77" },
+    "Connection": { "SourcePort": 14000, "TargetPort": 15000, "TargetHostName": "147.32.215.65" },
     "Manipulation": { "DropRate": 0, "ErrorRate": 10 },
     "Delay": { "Mean": 0, "StdDev": 0 }
   },
