@@ -175,8 +175,8 @@ class Server:
 
         print('asdsad')
         # initialize the threads
-        data_thread = threading.Thread(target=self.data_sender_thread())
-        ack_thread = threading.Thread(target=self.ack_reciever_thread())
+        data_thread = threading.Thread(target=self.data_sender_thread)
+        ack_thread = threading.Thread(target=self.ack_reciever_thread)
         print('Initialize threads')
 
         # start the threads

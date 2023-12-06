@@ -57,11 +57,16 @@ class Client:
         # split the message and crc
         try:
             decoded_packet = packet.decode()
+            print(decoded_packet)
+            print()
+            print()
             received_id = int(decoded_packet.split(',')[0])
             received_crc = int(decoded_packet[-10:])
+            print('crc', received_crc)
             received_message = decoded_packet[:-10]
 
         except Exception as e:
+            print(e)
             return False, None, None, None
         
         valid = self.getCRC_validity(received_message, received_crc)
@@ -107,14 +112,19 @@ class Client:
 
     def receive_file(self):
 
+        self.window_start_id = 0
+        self.acked_packets = [False for _ in range(self.window_size)]
+
         while True:
 
             # receive message
+            print('waiting for message')
             valid, received_message, received_id, _ = self.read_packet(block=True)
-
+            print('continuing')
             if valid and self.id_in_window(received_id):
                 # acknowledge valid message
                 self.send_ack(received_id, True)
+                print('sent ack')
                 self.acked_packets[received_id] = True
 
                 # check end of sequence
@@ -125,17 +135,19 @@ class Client:
                 # register message if not received
                 if received_id not in self.received_packet_ids:
                     heapq.heappush(self.received_packets, [received_id, received_message])
+                    print(len(self.received_packets))
                     # shift the sliding window
                     while self.acked_packets[self.window_start_id]:
                         self.acked_packets.append(False)
                         self.window_start_id += 1
 
             # ack all past packets
-            elif received_id < self.window_start_id:
+            elif received_id is not None and received_id < self.window_start_id:
+                print('sending ack')
                 self.send_ack(received_id, True)
 
             # nack invalid packets in current window
-            elif self.id_in_window(received_id):
+            elif received_id is not None and self.id_in_window(received_id):
                 self.send_ack(received_id, False)
 
             else:
