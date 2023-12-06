@@ -60,9 +60,10 @@ class Server:
         # TODO() check validity
         # TODO() add non blocking
         print('here')
-        self.socket.setblocking(block)
-        # TODO received packet might be limited by client address
-        bytesAddressPair = self.socket.recvfrom(self.bufferSize)
+        with self.lock:
+            self.socket.setblocking(block)
+            # TODO received packet might be limited by client address
+            bytesAddressPair = self.socket.recvfrom(self.bufferSize)
         packet = bytesAddressPair[0]
         client_address = bytesAddressPair[1]
 
@@ -90,7 +91,8 @@ class Server:
 
     def send_bytes(self, bytesToSend :bytes) -> None:
         print('sending bytes')
-        self.socket.sendto(bytesToSend, (self.client_ip_adress, self.target_port))
+        with self.lock:
+            self.socket.sendto(bytesToSend, (self.client_ip_adress, self.target_port))
 
     def get_CRC(self, data):
         crc32_func = crcmod.predefined.mkCrcFun('crc-32')
@@ -236,7 +238,6 @@ class Server:
 
         window_start_idx = 0
         print('ack thread running')
-        exit(0)
 
         while True:
             # process incoming acknowledgement -- nonblocking
