@@ -24,7 +24,7 @@ class Server:
         self.ip_adress = ip_adress
         self.bufferSize = bufferSize
         self.socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-        self.socket.settimeout(0.001)
+        self.socket.settimeout(0.0001)
         self.create_server()
 
         self.crc_size = 8  # in bytes
@@ -207,7 +207,7 @@ class Server:
             if new_packet is not None:
                 # update sent time
                 with self.lock:
-                    self.packets_sent_time[new_packet_id] = time.time() - self.com_start_time
+                    self.packets_sent_time[new_packet_id] = time.time()
                     # send the packet
                     self.send_bytes(new_packet)
 
@@ -221,7 +221,7 @@ class Server:
             if new_packet is not None:
                 # update sent time
                 with self.lock:
-                    self.packets_sent_time[new_packet_id] = time.time() - self.com_start_time
+                    self.packets_sent_time[new_packet_id] = time.time()
                     if new_packet_id in self.packet_ids_to_resend:
                         self.packet_ids_to_resend.remove(new_packet_id)
                     # send the packet
@@ -263,13 +263,12 @@ class Server:
                         if packet_id in self.packet_ids_to_resend:
                             self.packet_ids_to_resend.remove(packet_id)
 
-                    if pbar:
-                        pbar.update(1)
-
                     # shift the buffer
                     old_window_start_idx = window_start_idx
                     while self.acknowledged_packets[window_start_idx]:
                         window_start_idx += 1
+                        if pbar:
+                            pbar.update(1)
                         if window_start_idx == len(self.all_packets):
                             # reached the end
                             if sent_end_packet:
@@ -301,13 +300,14 @@ class Server:
                                 heapq.heappush(self.remaining_window_packets, item)
 
                         if pbar:
-                                pbar.set_description(f'waiting for: {window_start_idx}')
+                                pbar.set_description(f'waiting for: {window_start_idx} | win_start: {window_start_idx} | win_end: {window_start_idx+self.window_size}')
 
                 else:
                     # resend packet
                     packet_to_resend = self.all_packets[packet_id]
                     with self.lock:
-                        if packet_id not in self.packet_ids_to_resend:
+
+                        if packet_id not in self.packet_ids_to_resend and not self.acknowledged_packets[packet_id]:
                             heapq.heappush(self.packets_to_resend, [packet_id, packet_to_resend])
                             self.packet_ids_to_resend.add(packet_id)
 
@@ -315,13 +315,14 @@ class Server:
             with self.lock:
                 for packet_id in range(window_start_idx, min(window_start_idx + self.window_size, len(self.all_packets))):
                     if not self.acknowledged_packets[packet_id] and packet_id not in self.packet_ids_to_resend and self.packets_sent_time[packet_id] != -1:
-                        cur_wait_time = time.time() - self.com_start_time - self.packets_sent_time[packet_id]
+                        cur_wait_time = time.time() - self.packets_sent_time[packet_id]
                         if cur_wait_time > self.ack_timeout_s:
                             packet_to_resend = self.all_packets[packet_id]
                             self.packet_ids_to_resend.add(packet_id)
                             heapq.heappush(self.packets_to_resend, [packet_id, packet_to_resend])
-
-            #print(self.acknowledged_packets)
+                            '''print('resending ', packet_id)
+                            print('cur wait: ', cur_wait_time)
+                            print()'''
             time.sleep(1 / self.reciever_freq_hz)
 
 
