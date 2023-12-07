@@ -127,9 +127,7 @@ class Client:
             print('waiting for message')
             valid, received_message, received_id, _ = self.read_packet(block=True)
             print('id',received_id)
-            print()
-            #print('message', received_message)
-            print()
+
             if valid and self.id_in_window(received_id):
                 # acknowledge valid message
                 self.send_ack(received_id, True)
@@ -143,9 +141,8 @@ class Client:
 
                 # register message if not received
                 if received_id not in self.received_packet_ids:
+                    self.received_packet_ids.add(received_id)
                     heapq.heappush(self.received_packets, [received_id, received_message])
-                    print('len:', len(self.received_packets))
-                    print('windows_start', self.window_start_id)
                     # shift the sliding window
                     while self.acked_packets[self.window_start_id]:
                         self.acked_packets.append(False)
