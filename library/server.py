@@ -24,10 +24,10 @@ class Server:
         self.ip_adress = ip_adress
         self.bufferSize = bufferSize
         self.socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-
+        self.socket.settimeout(0.005)
         self.create_server()
 
-        self.crc_size = 10 # in bytes
+        self.crc_size = 8  # in bytes
 
         # shared resources between sender and reciever
         self.remaining_window_packets = []  # priority queue of packets to be sent in future iteration of sender thread [id, packet]
@@ -59,8 +59,7 @@ class Server:
     def message_read(self, block: bool = False) -> list:
         # TODO() check validity
         # TODO() add non blocking
-        print('here')
-        self.socket.setblocking(block)
+        #self.socket.setblocking(block)
         # TODO received packet might be limited by client address
         bytesAddressPair = self.socket.recvfrom(self.bufferSize)
         packet = bytesAddressPair[0]
@@ -74,6 +73,7 @@ class Server:
             received_message = decoded_packet[:-10]
 
         except Exception as e:
+            print(e)
             return False, None, None, None
 
         valid = self.getCRC_validity(received_message, received_crc)
@@ -84,8 +84,7 @@ class Server:
         for split in splits[1:]:
             message += split
 
-        print(received_message)
-        return valid, received_message, received_id, client_address
+        return valid, message, received_id, client_address
 
 
     def send_bytes(self, bytesToSend :bytes) -> None:
@@ -98,7 +97,7 @@ class Server:
         crc_str = str(crc)
         crc_correct_len = crc_str.zfill(10)
 
-        return crc_correct_len
+        return crc_correct_len, crc
 
     def open_file(self, path) -> tuple:
         # TODO() get filename, file length, file hash -> first packet
@@ -121,26 +120,26 @@ class Server:
 
         id = 0
 
-        init_packet_data = f"{id},{filename},{file_length},{file_hash}".encode()
-        crc = self.get_CRC(init_packet_data)
-        init_packet = init_packet_data + crc.encode()
+        id_bytes = id.to_bytes(4, byteorder='big')
+        init_packet_data = id_bytes + f"{filename},{file_length},{file_hash}".encode()
+        crc_str, crc = self.get_CRC(init_packet_data)
+        init_packet = init_packet_data + crc.to_bytes(8, byteorder='big')
 
         packets.append(init_packet)
 
         idx = 0
         while idx < file_length:
             id += 1
-            id_str = str(id)
-            id_bytes = id_str.encode()
+            id_bytes = id.to_bytes(4, byteorder='big')
             id_size = len(id_bytes)
-            data_len = self.bufferSize - id_size - self.crc_size - len(','.encode())  # TODO() possibly 10
+            data_len = self.bufferSize - id_size - self.crc_size  # TODO() possibly 10
 
             packet_data = data[idx:min(idx + data_len, file_length)]
 
-            packet_id_data = id_bytes + ','.encode() + packet_data
+            packet_id_data = id_bytes + packet_data
 
-            crc = self.get_CRC(packet_id_data)
-            crc_bytes = crc.encode()
+            crc_str, crc = self.get_CRC(packet_id_data)
+            crc_bytes = crc.to_bytes(8, byteorder='big')
             packet = packet_id_data + crc_bytes
             packets.append(packet)
 
@@ -173,7 +172,6 @@ class Server:
         self.packet_ids_to_resend = set()  # do not add twice -- nack and timeout
         self.com_start_time = time.time()
 
-        print('asdsad')
         # initialize the threads
         data_thread = threading.Thread(target=self.data_sender_thread)
         ack_thread = threading.Thread(target=self.ack_reciever_thread)
@@ -214,6 +212,7 @@ class Server:
                     # send the packet
                     self.send_bytes(new_packet)
 
+
             # check and send one remaining file to resend
             with self.lock:
                 new_packet = None
@@ -232,16 +231,29 @@ class Server:
             time.sleep(1 / self.sender_freq_hz)
 
 
+    def get_end_packet(self, packet_id: int):
+        end_packet_data = packet_id.to_bytes(4, byteorder='big') + f"STOP".encode()
+        crc_str, crc = self.get_CRC(end_packet_data)
+        end_packet = end_packet_data + crc.to_bytes(8, byteorder='big')
+        return end_packet
+
     def ack_reciever_thread(self):
 
         window_start_idx = 0
         print('ack thread running')
+        sent_end_packet = False
 
         while True:
             # process incoming acknowledgement -- nonblocking
             with self.lock:
-                valid, message, packet_id, _ = self.message_read(block=False)
-            print(valid, message)
+                valid = False
+                packet_id = None
+                try:
+                    valid, message, packet_id, _ = self.message_read(block=False)
+                    print(valid, message, packet_id)
+                except Exception as e:
+                    print(e)
+
             if valid:
                 ack = self.parse_ack_message(message)
                 if ack:
@@ -252,20 +264,27 @@ class Server:
                     old_window_start_idx = window_start_idx
                     while self.acknowledged_packets[window_start_idx]:
                         window_start_idx += 1
-                        if window_start_idx == len(self.all_packets) - 1:
+                        if window_start_idx == len(self.all_packets) :
                             # reached the end
-                            print('All packets ackowledged --> ending ack reciever thread')
-                            with self.lock:
-                                self.com_finished = True
-                                return
+                            if sent_end_packet:
+                                print('All packets ackowledged --> ending ack reciever thread')
+                                with self.lock:
+                                    self.com_finished = True
+                                    return
+                            else:
+                                print('Registering end packet')
+                                self.acknowledged_packets = np.concatenate([self.acknowledged_packets, np.array([0], dtype=bool)])
+                                self.packets_sent_time = np.concatenate([self.packets_sent_time, np.array([-1], dtype=float)])
+                                self.all_packets.append(self.get_end_packet(len(self.all_packets)))
+                                sent_end_packet = True
 
                     # get the new packets to send -- because if the window shift
                     if old_window_start_idx != window_start_idx:
                         new_packet_items = []
                         start_packet_id = min(old_window_start_idx + self.window_size, len(self.all_packets) - 1)
-                        end_packet_id = max(window_start_idx + self.window_size, len(self.all_packets) - 1)
+                        end_packet_id = min(window_start_idx + self.window_size, len(self.all_packets))
                         for new_packet_id in range(start_packet_id, end_packet_id):
-                            new_packet_items.append(self.all_packets[new_packet_id, self.all_packets[new_packet_id]])
+                            new_packet_items.append([new_packet_id, self.all_packets[new_packet_id]])
 
                         with self.lock:
                             for item in new_packet_items:
@@ -288,6 +307,8 @@ class Server:
                             packet_to_resend = self.all_packets[packet_id]
                             self.packet_ids_to_resend.add(packet_id)
                             heapq.heappush(self.packets_to_resend, [packet_id, packet_to_resend])
+
+            print(self.acknowledged_packets)
 
             time.sleep(1 / self.reciever_freq_hz)
 
