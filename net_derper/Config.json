@@ -2,11 +2,11 @@
   "Data": {
     "Connection": { "SourcePort": 14000, "TargetPort": 15000, "TargetHostName": "147.32.215.69" },
     "Manipulation": { "DropRate": 40, "ErrorRate": 50 },
-    "Delay": { "Mean": 2000, "StdDev": 1000 }
+    "Delay": { "Mean": 100, "StdDev": 100 }
   },
   "Acknowledgement": {
     "Connection": { "SourcePort": 14001, "TargetPort": 15001, "TargetHostName": "127.0.0.1" },
     "Manipulation": { "DropRate": 30, "ErrorRate": 50 },
-    "Delay": { "Mean": 3000, "StdDev": 1500 }
+    "Delay": { "Mean": 50, "StdDev": 10 }
   }
 }

@@ -3,7 +3,7 @@ import time
 import crcmod
 
 SERVER_IP_ADRESS = ''
-FILE_PATH = './data/ajm.txt'
+FILE_PATH = './data/n1_driver.jpg'
 
 if __name__ == '__main__':
 
