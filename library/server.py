@@ -9,7 +9,7 @@ import heapq
 import time
 
 import numpy as np
-
+from tqdm import tqdm
 
 class Server:
     def __init__(self, ack_timout_s: float, ip_adress: str = "127.0.0.1", bufferSize: int = 1024, sender_freq_hz: float = 100, reciever_freq_hz: float = 100) -> None:
@@ -24,7 +24,7 @@ class Server:
         self.ip_adress = ip_adress
         self.bufferSize = bufferSize
         self.socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-        self.socket.settimeout(0.005)
+        self.socket.settimeout(0.001)
         self.create_server()
 
         self.crc_size = 8  # in bytes
@@ -73,7 +73,7 @@ class Server:
             received_message = decoded_packet[:-10]
 
         except Exception as e:
-            print(e)
+            #print(e)
             return False, None, None, None
 
         valid = self.getCRC_validity(received_message, received_crc)
@@ -88,7 +88,7 @@ class Server:
 
 
     def send_bytes(self, bytesToSend :bytes) -> None:
-        print('sending bytes')
+        #print('sending bytes')
         self.socket.sendto(bytesToSend, (self.client_ip_adress, self.target_port))
 
     def get_CRC(self, data):
@@ -145,12 +145,11 @@ class Server:
 
             idx += data_len
 
-        print(len(packets))
         return packets
 
 
     def parse_ack_message(self, message: str) -> tuple:
-        ack = bool(message)
+        ack = int(message) == 1
         return ack
 
     def serve_file(self, file_path: str, window_size: int) -> None:
@@ -242,6 +241,7 @@ class Server:
         window_start_idx = 0
         print('ack thread running')
         sent_end_packet = False
+        pbar = tqdm(total=len(self.all_packets))
 
         while True:
             # process incoming acknowledgement -- nonblocking
@@ -250,21 +250,27 @@ class Server:
                 packet_id = None
                 try:
                     valid, message, packet_id, _ = self.message_read(block=False)
-                    print(valid, message, packet_id)
                 except Exception as e:
-                    print(e)
+                    #print(e)
+                    pass
 
             if valid:
                 ack = self.parse_ack_message(message)
                 if ack:
                     # acknowledge packet
                     self.acknowledged_packets[packet_id] = True
+                    with self.lock:
+                        if packet_id in self.packet_ids_to_resend:
+                            self.packet_ids_to_resend.remove(packet_id)
+
+                    if pbar:
+                        pbar.update(1)
 
                     # shift the buffer
                     old_window_start_idx = window_start_idx
                     while self.acknowledged_packets[window_start_idx]:
                         window_start_idx += 1
-                        if window_start_idx == len(self.all_packets) :
+                        if window_start_idx == len(self.all_packets):
                             # reached the end
                             if sent_end_packet:
                                 print('All packets ackowledged --> ending ack reciever thread')
@@ -273,10 +279,14 @@ class Server:
                                     return
                             else:
                                 print('Registering end packet')
+                                pbar.close()
+                                pbar = None
                                 self.acknowledged_packets = np.concatenate([self.acknowledged_packets, np.array([0], dtype=bool)])
                                 self.packets_sent_time = np.concatenate([self.packets_sent_time, np.array([-1], dtype=float)])
                                 self.all_packets.append(self.get_end_packet(len(self.all_packets)))
                                 sent_end_packet = True
+
+
 
                     # get the new packets to send -- because if the window shift
                     if old_window_start_idx != window_start_idx:
@@ -289,6 +299,9 @@ class Server:
                         with self.lock:
                             for item in new_packet_items:
                                 heapq.heappush(self.remaining_window_packets, item)
+
+                        if pbar:
+                                pbar.set_description(f'waiting for: {window_start_idx}')
 
                 else:
                     # resend packet
@@ -308,8 +321,7 @@ class Server:
                             self.packet_ids_to_resend.add(packet_id)
                             heapq.heappush(self.packets_to_resend, [packet_id, packet_to_resend])
 
-            print(self.acknowledged_packets)
-
+            #print(self.acknowledged_packets)
             time.sleep(1 / self.reciever_freq_hz)
 
 

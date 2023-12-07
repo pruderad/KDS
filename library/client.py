@@ -1,3 +1,4 @@
+import copy
 import socket
 import json
 import sys
@@ -6,7 +7,7 @@ import heapq
 import hashlib
 import numpy as np
 import time
-
+from tqdm import tqdm
 class Client:
     def __init__(self, server_ip_adress: str, window_size: int, bufferSize: int = 1024) -> None:
         with open('./net_derper/Config.json', 'rb') as c_file:
@@ -120,19 +121,29 @@ class Client:
 
         self.window_start_id = 0
         self.acked_packets = [False for _ in range(self.window_size)]
+        pbar = None
+        received_data_size = 0
 
         while True:
 
             # receive message
-            print('waiting for message')
             valid, received_message, received_id, _ = self.read_packet(block=True)
-            print('id',received_id)
 
             if valid and self.id_in_window(received_id):
                 # acknowledge valid message
                 self.send_ack(received_id, True)
-                print('sent ack')
                 self.acked_packets[received_id] = True
+
+                # initialize progress bar
+                if received_id != 0:
+                    received_data_size += len(received_message)
+                if pbar is None and received_id == 0:
+                    file_name, file_length, file_hash = self.read_init_packet(copy.deepcopy(received_message))
+                    pbar = tqdm(total=file_length)
+                    pbar.update(received_data_size)
+                    pbar.set_description(f'receiving file: {file_name}')
+                elif pbar is not None:
+                    pbar.update(len(received_message))
 
                 # check end of sequence
                 if received_message == 'STOP'.encode():
@@ -160,7 +171,7 @@ class Client:
 
             else:
                 print('Message from future You Stupid')
-
+        pbar.close()
         valid = self.save_file_from_packets(self.received_packets)
         print(f'Received: {valid}')
 
