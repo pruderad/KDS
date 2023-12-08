@@ -133,6 +133,7 @@ class Client:
             if valid and self.id_in_window(received_id):
                 # acknowledge valid message
                 self.send_ack(received_id, True)
+                #print('id', received_id)
                 self.acked_packets[received_id] = True
 
                 # initialize progress bar
@@ -145,6 +146,7 @@ class Client:
                     pbar.set_description(f'receiving file: {file_name}')
                 elif pbar is not None:
                     pbar.update(len(received_message))
+                    pbar.set_description(f'win_start: {self.window_start_id} | win_end: {self.window_start_id + self.window_size}' )
 
                 # check end of sequence
                 if received_message == 'STOP'.encode():
@@ -159,10 +161,14 @@ class Client:
                     while self.acked_packets[self.window_start_id]:
                         self.acked_packets.append(False)
                         self.window_start_id += 1
+                else:
+                    print('redundasnt packet')
 
             # ack all past packets
             elif received_id is not None and received_id < self.window_start_id:
+                #print('past packet id', received_id)
                 self.send_ack(received_id, True)
+
 
             # nack invalid packets in current window
             elif received_id is not None and self.id_in_window(received_id):
